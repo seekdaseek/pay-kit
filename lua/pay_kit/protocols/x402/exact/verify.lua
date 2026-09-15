@@ -238,15 +238,10 @@ function M.verify(transaction_b64, requirement, managed_signers)
   if not decode_ok or not raw or raw == '' then
     error('invalid_exact_svm_payload_base64')
   end
+  -- Legacy and v0 wires both decode; the static layout below applies to
+  -- either encoding.
   local ok, parsed_or_err = pcall(tx_mod.from_bytes, raw)
-  if not ok then
-    if parsed_or_err == tx_mod.LEGACY_UNSUPPORTED then
-      -- Same reject code as any other unparseable wire; the reason text
-      -- tells the client which message version to send instead.
-      error('invalid_exact_svm_payload_transaction_parse: ' .. tx_mod.LEGACY_UNSUPPORTED, 0)
-    end
-    error('invalid_exact_svm_payload_transaction_parse')
-  end
+  if not ok then error('invalid_exact_svm_payload_transaction_parse') end
   local parsed = parsed_or_err
 
   local instructions = parsed.message.instructions

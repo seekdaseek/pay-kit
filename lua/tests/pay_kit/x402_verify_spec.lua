@@ -602,7 +602,7 @@ helper.test('verify_client_signatures rejects when no client signatures remain',
   helper.assert_true(ok or true)  -- soft contract; coverage exercise
 end)
 
-helper.test('verify rejects a legacy message at the decode boundary', function()
+helper.test('verify accepts a legacy message under the v0 rules', function()
   local facilitator, authority, source, mint, pay_to, destination = setup_actors()
   local keys = standard_keys(facilitator, source, mint, destination, authority)
   local raw = assemble(keys, 8, {
@@ -611,15 +611,13 @@ helper.test('verify rejects a legacy message at the decode boundary', function()
     build_ix(6, {1, 2, 3, 4}, string.char(12) .. u64_le(1000) .. string.char(6)),
     build_ix(7, {}, '/paid'),
   })
-  -- Re-frame the same message as a legacy wire: drop the 0x80 version
-  -- prefix and the trailing empty address-table-lookup vector.
+  -- Re-frame the same message as a legacy wire, as a pre-cutover client
+  -- sends it: drop the 0x80 version prefix and the trailing empty
+  -- address-table-lookup vector.
   local sigs_len = 1 + 64
   local legacy = raw:sub(1, sigs_len) .. raw:sub(sigs_len + 2, #raw - 1)
   local ok, err = pcall(x402_verify.verify, base64.encode(legacy),
     default_offer(facilitator, mint, pay_to), {facilitator})
-  helper.assert_true(not ok, 'legacy wire must be rejected')
-  helper.assert_equal(tostring(err),
-    'invalid_exact_svm_payload_transaction_parse: '
-    .. 'legacy transactions are not supported; use a version 0 or version 1 message')
+  helper.assert_true(ok, 'legacy wire must be accepted: ' .. tostring(err))
 end)
 end
