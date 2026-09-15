@@ -165,6 +165,11 @@ local function parse_message(raw)
       lookups[#lookups + 1] = parse_lookup(cursor)
     end
   end
+  -- Canonical encoding only: what the signatures cover is exactly what
+  -- re-serializes, so a message followed by stray bytes is malformed.
+  if cursor.offset <= #raw then
+    error('trailing bytes after transaction message')
+  end
   return {
     raw = raw,
     version = version,

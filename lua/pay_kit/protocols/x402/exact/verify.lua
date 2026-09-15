@@ -315,14 +315,22 @@ function M.verify_client_signatures(transaction_b64, managed_signer_b58_list)
     error('invalid_exact_svm_payload_signature')
   end
   local message = raw:sub(message_offset + 1)
-  if message:byte(1) ~= 0x80 then
+  -- A legacy (unprefixed) message starts at the header; a v0 message carries
+  -- the 0x80 prefix first. Both are accepted, and the signature covers the
+  -- message bytes exactly as framed.
+  local first = message:byte(1)
+  local header = 0
+  if first >= 128 then
+    if first ~= 0x80 then
+      error('invalid_exact_svm_payload_signature')
+    end
+    header = 1
+  end
+  local required_signatures = message:byte(header + 1)
+  if not required_signatures or required_signatures > signature_count then
     error('invalid_exact_svm_payload_signature')
   end
-  local required_signatures = message:byte(2)
-  if required_signatures > signature_count then
-    error('invalid_exact_svm_payload_signature')
-  end
-  local account_count, account_offset = read_short_vec(message, 4)
+  local account_count, account_offset = read_short_vec(message, header + 3)
   if required_signatures > account_count then
     error('invalid_exact_svm_payload_signature')
   end

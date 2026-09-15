@@ -40,6 +40,18 @@ class TransactionTest < Minitest::Test
     assert_equal raw, ::PayCore::Solana::Transaction.from_base64(Base64.strict_encode64(raw)).to_bytes
   end
 
+  def test_rejects_trailing_bytes_after_either_message_framing
+    account_keys = [pubkey(1), pubkey(2), PROGRAMS::SYSTEM_PROGRAM]
+    instructions = [compiled_instruction(2, [0, 1], u32(2) + u64(1000))]
+    [
+      v0_transaction(account_keys: account_keys, instructions: instructions),
+      legacy_transaction(account_keys: account_keys, instructions: instructions)
+    ].each do |raw|
+      error = assert_raises(ArgumentError) { ::PayCore::Solana::Transaction.from_bytes(raw + "\x00".b) }
+      assert_match(/trailing bytes after transaction message/, error.message)
+    end
+  end
+
   def test_parses_v0_transaction_without_address_lookups
     payer = pubkey(1)
     recipient = pubkey(2)

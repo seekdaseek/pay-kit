@@ -158,6 +158,10 @@ module PayCore
         instructions = cursor.compact_u16.times.map { Instruction.parse(cursor) }
         lookups = []
         lookups = cursor.compact_u16.times.map { AddressLookup.parse(cursor) } if version == 0
+        # Canonical encoding only: what the signatures cover is exactly what
+        # re-serializes, so a message followed by stray bytes is malformed.
+        raise ArgumentError, "trailing bytes after transaction message" if cursor.offset < raw.bytesize
+
         new(
           raw: raw,
           version: version,

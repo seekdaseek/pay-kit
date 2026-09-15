@@ -400,7 +400,9 @@ class X402ServerExactTest < Minitest::Test
 
     assert_equal "unit-settlement", settlement
     signed_transaction = sent.fetch(0)
-    assert_equal 0, signed_transaction.getbyte(65) & 0x80, "the legacy message must be sent unprefixed"
+    signature_count, signatures_offset = PayKit::Protocols::X402::Protocol::Schemes::Exact.read_short_vec(signed_transaction, 0)
+    message_offset = signatures_offset + (signature_count * 64)
+    assert_equal 0, signed_transaction.getbyte(message_offset) & 0x80, "the legacy message must be sent unprefixed"
     refute_equal "\x00".b * 64, signed_transaction.byteslice(1, 64)
   end
 

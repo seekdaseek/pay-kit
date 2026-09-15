@@ -73,6 +73,15 @@ helper.test('transaction.from_bytes parses a minimal v0 fixture', function()
   helper.assert_equal(#tx.message.address_table_lookups, 0)
 end)
 
+helper.test('transaction.from_bytes rejects trailing bytes after either message framing', function()
+  for _, versioned in ipairs({ true, false }) do
+    local fixture = build_fixture(versioned)
+    local ok, err = pcall(transaction.from_bytes, fixture.raw .. '\0')
+    helper.assert_true(not ok, 'trailing bytes must be rejected')
+    helper.assert_true(tostring(err):find('trailing bytes after transaction message', 1, true), tostring(err))
+  end
+end)
+
 helper.test('transaction.to_bytes round-trips a v0 fixture', function()
   local fixture = build_v0_fixture()
   local tx = transaction.from_bytes(fixture.raw)
